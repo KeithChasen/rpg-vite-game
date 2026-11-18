@@ -63,6 +63,11 @@ export function createPlayer(scene, { x = 0, z = 0 } = {}) {
 		speed: 6,
 		collisionRadius: 0.45, // player's collision radius
 
+		attackDamage: 25,
+		attackRange: 2.4,
+		attackCooldown: 0.55,
+		attackTimer: 0,
+
 		dispose() {
 			scene.remove(root);
 

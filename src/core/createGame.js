@@ -10,6 +10,8 @@ import { createInput } from '../systems/createInput.js';
 import { updatePlayerMovement } from '../systems/updatePlayerMovement.js';
 import { updateEnemies } from '../systems/updateEnemies.js';
 
+import { updateCombat } from '../systems/updateCombat.js';
+
 export function createGame(container) {
 	const scene = new THREE.Scene();
 
@@ -110,6 +112,15 @@ export function createGame(container) {
 		updateEnemies(
 			enemies,
 			player,
+			deltaTime,
+			environment.obstacles,
+			island.radius - 3
+		);
+
+		updateCombat(
+			player,
+			input,
+			enemies,
 			deltaTime,
 			environment.obstacles,
 			island.radius - 3

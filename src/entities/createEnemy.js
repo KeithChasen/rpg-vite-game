@@ -81,6 +81,9 @@ export function createEnemy(scene, { x = 0, z = 0 } = {}) {
 		attackRadius: 1.5,
 		collisionRadius: 0.55,
 
+		hp: 60,
+		maxHp: 60,
+
 		state: 'idle',
 
 		dispose() {

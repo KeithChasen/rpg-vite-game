@@ -7,6 +7,7 @@ const MOVEMENT_KEYS = new Set([
 	'ArrowLeft',
 	'ArrowDown',
 	'ArrowRight',
+	'Space',
 ]);
 
 export function createInput(target = window) {
