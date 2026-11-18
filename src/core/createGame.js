@@ -20,6 +20,12 @@ import { createInventoryUI } from '../ui/createInventoryUI.js';
 
 import { updateEnemyDrops } from '../systems/updateEnemyDrops.js';
 
+import { createEventBus } from './createEventBus.js';
+import { createQuestManager } from '../quests/createQuestManager.js';
+
+import { createNpc } from '../entities/createNpc.js';
+import { createWallet } from '../systems/createWallet.js';
+
 export function createGame(container) {
 	const scene = new THREE.Scene();
 
@@ -75,17 +81,24 @@ export function createGame(container) {
 	// Player
 	const player = createPlayer(scene, { x: 0, z: 0 });
 
-	const enemies = [
-		createEnemy(scene, { x: 8, z: -8 }),
-		createEnemy(scene, { x: -12, z: 5 }),
-		createEnemy(scene, { x: 15, z: 10 }),
-	];
+	const npc = createNpc(scene, {
+		x: 2,
+		z: 5,
+	});
+
+	// const enemies = [
+	// 	createEnemy(scene, { x: 8, z: -8 }),
+	// 	createEnemy(scene, { x: -12, z: 5 }),
+	// 	createEnemy(scene, { x: 15, z: 10 }),
+	// ];
+
+	const enemies = [];
 
 	// Input
 	const input = createInput();
 
 	const inventory = createInventory();
-
+	const wallet = createWallet();
 	const inventoryUI = createInventoryUI(inventory);
 
 	const drops = [
@@ -102,6 +115,9 @@ export function createGame(container) {
 		// 	amount: 2,
 		// }),
 	];
+
+	const events = createEventBus();
+	const questManager = createQuestManager(events);
 
 	// Time tracking
 	const clock = new THREE.Clock();
@@ -150,7 +166,8 @@ export function createGame(container) {
 			enemies,
 			deltaTime,
 			environment.obstacles,
-			island.radius - 3
+			island.radius - 3,
+			events
 		);
 
 		updateEnemyDrops(enemies, drops, scene);
@@ -203,9 +220,13 @@ export function createGame(container) {
 
 		input.dispose();
 		player.dispose();
+		npc.dispose();
 		environment.dispose();
 
 		renderer.dispose();
+
+		questManager.dispose();
+		events.dispose();
 
 		container.removeChild(renderer.domElement);
 	}
@@ -220,5 +241,9 @@ export function createGame(container) {
 		start,
 		stop,
 		dispose,
+		events,
+		questManager,
+		npc,
+		wallet,
 	};
 }

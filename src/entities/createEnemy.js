@@ -130,6 +130,8 @@ export function createEnemy(scene, { x = 0, z = 0 } = {}) {
 
 		state: 'idle',
 
+		type: 'wolf',
+
 		updateHealthBar,
 
 		hitTimer: 0,

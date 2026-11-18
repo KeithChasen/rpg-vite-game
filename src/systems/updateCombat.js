@@ -18,7 +18,8 @@ export function updateCombat(
 	enemies,
 	deltaTime,
 	obstacles = [],
-	worldRadius = 35
+	worldRadius = 35,
+	events
 ) {
 	// Update attack cooldown.
 	player.attackTimer = Math.max(0, player.attackTimer - deltaTime);
@@ -101,6 +102,10 @@ export function updateCombat(
 		if (enemy.hp <= 0) {
 			enemy.state = 'dead';
 			enemy.deathTimer = enemy.deathDuration;
+
+			events.emit('enemy:killed', {
+				enemyType: enemy.type,
+			});
 		}
 	}
 }
