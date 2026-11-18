@@ -61,6 +61,12 @@ export function updateCombat(
 		// Apply damage.
 		enemy.hp = Math.max(0, enemy.hp - player.attackDamage);
 
+		// Update visual health bar.
+		enemy.updateHealthBar(enemy.hp, enemy.maxHp);
+
+		// Trigger hit reaction.
+		enemy.hitTimer = 0.18;
+
 		// Knockback direction.
 		const knockbackDistance = 0.7;
 
@@ -94,7 +100,7 @@ export function updateCombat(
 		// Handle enemy death.
 		if (enemy.hp <= 0) {
 			enemy.state = 'dead';
-			enemy.root.visible = false;
+			enemy.deathTimer = enemy.deathDuration;
 		}
 	}
 }

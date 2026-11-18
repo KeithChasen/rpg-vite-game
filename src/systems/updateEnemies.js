@@ -20,7 +20,31 @@ export function updateEnemies(
 	worldRadius = 35
 ) {
 	for (const enemy of enemies) {
-		if (enemy.state === 'dead') continue;
+		// Handle death animation.
+		if (enemy.state === 'dead') {
+			enemy.deathTimer = Math.max(0, enemy.deathTimer - deltaTime);
+
+			const scale = enemy.deathTimer / enemy.deathDuration;
+
+			enemy.root.scale.setScalar(scale);
+
+			if (enemy.deathTimer <= 0) {
+				enemy.root.visible = false;
+			}
+
+			continue;
+		}
+
+		// Handle hit reaction.
+		if (enemy.hitTimer > 0) {
+			enemy.hitTimer = Math.max(0, enemy.hitTimer - deltaTime);
+
+			const pulse = enemy.hitTimer / 0.18;
+
+			enemy.root.scale.setScalar(1 + pulse * 0.12);
+		} else {
+			enemy.root.scale.setScalar(1);
+		}
 
 		// Calculate distance and direction to player.
 		const dx = player.position.x - enemy.position.x;

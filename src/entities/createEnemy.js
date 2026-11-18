@@ -70,6 +70,50 @@ export function createEnemy(scene, { x = 0, z = 0 } = {}) {
 		}
 	}
 
+	// Health bar
+	const healthBar = new THREE.Group();
+	healthBar.position.set(0, 2.05, 0);
+
+	const healthBarBackgroundMaterial = new THREE.MeshBasicMaterial({
+		color: 0x29232a,
+		depthTest: false,
+		side: THREE.DoubleSide,
+	});
+
+	const healthBarFillMaterial = new THREE.MeshBasicMaterial({
+		color: 0x55cc66,
+		depthTest: false,
+		side: THREE.DoubleSide,
+	});
+
+	const healthBarBackground = new THREE.Mesh(
+		new THREE.PlaneGeometry(0.9, 0.12),
+		healthBarBackgroundMaterial
+	);
+
+	const healthBarFill = new THREE.Mesh(
+		new THREE.PlaneGeometry(0.86, 0.08),
+		healthBarFillMaterial
+	);
+
+	healthBarFill.position.z = 0.01;
+
+	healthBarBackground.renderOrder = 10;
+	healthBarFill.renderOrder = 11;
+
+	healthBar.add(healthBarBackground, healthBarFill);
+	root.add(healthBar);
+
+	// Update health bar according to current HP.
+	function updateHealthBar(hp, maxHp) {
+		const ratio = Math.max(0, hp / maxHp);
+
+		healthBarFill.scale.x = ratio;
+		healthBarFill.position.x = -0.43 * (1 - ratio);
+
+		healthBarFillMaterial.color.setHex(ratio < 0.3 ? 0xe04444 : 0x55cc66);
+	}
+
 	scene.add(root);
 
 	return {
@@ -86,6 +130,13 @@ export function createEnemy(scene, { x = 0, z = 0 } = {}) {
 
 		state: 'idle',
 
+		updateHealthBar,
+
+		hitTimer: 0,
+
+		deathTimer: 0,
+		deathDuration: 0.45,
+
 		dispose() {
 			scene.remove(root);
 
@@ -98,6 +149,9 @@ export function createEnemy(scene, { x = 0, z = 0 } = {}) {
 			furMaterial.dispose();
 			darkMaterial.dispose();
 			eyeMaterial.dispose();
+
+			healthBarBackgroundMaterial.dispose();
+			healthBarFillMaterial.dispose();
 		},
 	};
 }
