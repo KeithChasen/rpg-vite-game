@@ -137,6 +137,8 @@ export function createEnemy(scene, { x = 0, z = 0 } = {}) {
 		deathTimer: 0,
 		deathDuration: 0.45,
 
+		dropSpawned: false,
+
 		dispose() {
 			scene.remove(root);
 
