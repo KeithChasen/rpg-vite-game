@@ -4,6 +4,7 @@ import { createIsland } from '../world/island.js';
 import { createEnvironment } from '../world/environment.js';
 
 import { createPlayer } from '../entities/createPlayer.js';
+import { createEnemy } from '../entities/createEnemy.js';
 
 import { createInput } from '../systems/createInput.js';
 import { updatePlayerMovement } from '../systems/updatePlayerMovement.js';
@@ -62,6 +63,12 @@ export function createGame(container) {
 
 	// Player
 	const player = createPlayer(scene, { x: 0, z: 0 });
+
+	const enemies = [
+		createEnemy(scene, { x: 8, z: -8 }),
+		createEnemy(scene, { x: -12, z: 5 }),
+		createEnemy(scene, { x: 15, z: 10 }),
+	];
 
 	// Input
 	const input = createInput();
