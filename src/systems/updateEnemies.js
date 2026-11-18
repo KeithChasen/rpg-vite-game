@@ -10,7 +10,7 @@ function collidesWithObstacle(x, z, enemyRadius, obstacles) {
 }
 
 /**
- * Updates enemy AI and movement.
+ * Updates enemy AI, movement and attacks.
  */
 export function updateEnemies(
 	enemies,
@@ -19,13 +19,22 @@ export function updateEnemies(
 	obstacles = [],
 	worldRadius = 35
 ) {
+	// Update player's invulnerability timer once per frame.
+	player.invulnerabilityTimer = Math.max(
+		0,
+		player.invulnerabilityTimer - deltaTime
+	);
+
+	player.hitTimer = Math.max(0, player.hitTimer - deltaTime);
+
+	player.setHitVisual(player.hitTimer > 0);
+	player.updateHealthBar(player.hp, player.maxHp);
+
 	for (const enemy of enemies) {
-		// Handle death animation.
 		if (enemy.state === 'dead') {
 			enemy.deathTimer = Math.max(0, enemy.deathTimer - deltaTime);
 
 			const scale = enemy.deathTimer / enemy.deathDuration;
-
 			enemy.root.scale.setScalar(scale);
 
 			if (enemy.deathTimer <= 0) {
@@ -35,16 +44,20 @@ export function updateEnemies(
 			continue;
 		}
 
+		// Update enemy attack cooldown.
+		enemy.attackTimer = Math.max(0, (enemy.attackTimer ?? 0) - deltaTime);
+
 		// Handle hit reaction.
 		if (enemy.hitTimer > 0) {
 			enemy.hitTimer = Math.max(0, enemy.hitTimer - deltaTime);
 
 			const pulse = enemy.hitTimer / 0.18;
-
 			enemy.root.scale.setScalar(1 + pulse * 0.12);
 		} else {
 			enemy.root.scale.setScalar(1);
 		}
+
+		if (player.isDead) continue;
 
 		// Calculate distance and direction to player.
 		const dx = player.position.x - enemy.position.x;
@@ -58,7 +71,7 @@ export function updateEnemies(
 			continue;
 		}
 
-		// Player is close enough to attack.
+		// Determine enemy state.
 		if (distance <= enemy.attackRadius) {
 			enemy.state = 'attacking';
 		} else {
@@ -70,10 +83,32 @@ export function updateEnemies(
 			enemy.root.rotation.y = Math.atan2(dx, dz) + Math.PI;
 		}
 
-		// Only move while chasing.
-		if (enemy.state !== 'chasing') continue;
+		// Attack player.
+		if (enemy.state === 'attacking') {
+			if (enemy.attackTimer <= 0) {
+				enemy.attackTimer = enemy.attackCooldown ?? 1.5;
 
-		// Normalize movement direction.
+				if (player.invulnerabilityTimer <= 0) {
+					const baseDamage =
+						enemy.attackDamage ?? (enemy.type === 'wolf_chief' ? 20 : 10);
+
+					const damage = Math.max(1, baseDamage - player.defense);
+
+					player.hp = Math.max(0, player.hp - damage);
+
+					player.invulnerabilityTimer = 0.7;
+					player.hitTimer = 0.2;
+
+					if (player.hp <= 0) {
+						player.isDead = true;
+					}
+				}
+			}
+
+			continue;
+		}
+
+		// Only move while chasing.
 		const directionX = dx / distance;
 		const directionZ = dz / distance;
 

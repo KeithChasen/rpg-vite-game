@@ -34,6 +34,8 @@ import { createNpcDialogue } from '../dialogue/createNpcDialogue.js';
 import { createNpcQuestMarker } from '../ui/createNpcQuestMarker.js';
 import { createQuestLogUI } from '../ui/createQuestLogUI.js';
 import { createQuestNotifications } from '../ui/createQuestNotifications.js';
+import { createGameOverUI } from '../ui/createGameOverUI.js';
+
 export function createGame(container) {
 	const scene = new THREE.Scene();
 
@@ -87,7 +89,30 @@ export function createGame(container) {
 	});
 
 	// Player
-	const player = createPlayer(scene, { x: 0, z: 0 });
+	const playerSpawn = { x: 0, z: 0 };
+
+	const player = createPlayer(scene, playerSpawn);
+
+	function respawnPlayer() {
+		player.hp = player.maxHp;
+		player.isDead = false;
+
+		player.invulnerabilityTimer = 1;
+		player.hitTimer = 0;
+
+		player.position.set(playerSpawn.x, 0, playerSpawn.z);
+
+		player.root.rotation.set(0, 0, 0);
+		player.root.scale.setScalar(1);
+		player.root.visible = true;
+
+		player.setHitVisual(false);
+		player.updateHealthBar(player.hp, player.maxHp);
+	}
+
+	const gameOverUI = createGameOverUI({
+		onRespawn: respawnPlayer,
+	});
 
 	const npc = createNpc(scene, {
 		x: 2,
@@ -215,11 +240,11 @@ export function createGame(container) {
 
 		const deltaTime = Math.min(clock.getDelta(), 0.05);
 
-		if (!dialogueUI.isOpen() && input.wasPressed('KeyJ')) {
+		if (!player.isDead && !dialogueUI.isOpen() && input.wasPressed('KeyJ')) {
 			questLogUI.toggle();
 		}
 
-		if (!dialogueUI.isOpen() && !questLogUI.isOpen()) {
+		if (!player.isDead && !dialogueUI.isOpen() && !questLogUI.isOpen()) {
 			updateNpcInteraction({
 				npc,
 				player,
@@ -230,7 +255,7 @@ export function createGame(container) {
 
 		const interfaceOpen = dialogueUI.isOpen() || questLogUI.isOpen();
 
-		if (!interfaceOpen) {
+		if (!interfaceOpen && !player.isDead) {
 			// Update player
 			updatePlayerMovement(
 				player,
@@ -269,6 +294,10 @@ export function createGame(container) {
 			environment.obstacles,
 			island.radius - 3
 		);
+
+		if (player.isDead && !gameOverUI.isOpen()) {
+			gameOverUI.show();
+		}
 
 		updateEnemyDrops(enemies, drops, scene);
 
@@ -324,9 +353,10 @@ export function createGame(container) {
 		npcQuestMarker.dispose();
 		questLogUI.dispose();
 		questNotifications.dispose();
-		unsubscribeQuestAccepted();
 
 		unsubscribeQuestAccepted();
+
+		gameOverUI.dispose();
 
 		container.removeChild(renderer.domElement);
 	}

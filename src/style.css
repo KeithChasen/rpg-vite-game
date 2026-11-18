@@ -359,3 +359,129 @@ canvas {
 	opacity: 1;
 	transform: translateY(0);
 }
+
+/* Game Over */
+
+.game-over {
+	position: fixed;
+	inset: 0;
+	z-index: 1000;
+
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	background: radial-gradient(
+		ellipse at center,
+		rgba(75, 20, 27, 0.45),
+		rgba(5, 8, 14, 0.96) 75%
+	);
+
+	backdrop-filter: blur(8px);
+
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+
+	transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+.game-over--visible {
+	opacity: 1;
+	visibility: visible;
+	pointer-events: auto;
+}
+
+.game-over__panel {
+	width: min(90%, 480px);
+	padding: 56px 40px;
+
+	text-align: center;
+
+	background: rgba(16, 19, 28, 0.92);
+	border: 1px solid rgba(220, 70, 80, 0.3);
+	border-radius: 8px;
+
+	box-shadow: 0 0 80px rgba(160, 25, 35, 0.12), 0 25px 80px rgba(0, 0, 0, 0.5);
+
+	transform: translateY(20px) scale(0.97);
+	transition: transform 0.5s ease;
+}
+
+.game-over--visible .game-over__panel {
+	transform: translateY(0) scale(1);
+}
+
+.game-over__eyebrow {
+	color: #b36a70;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 4px;
+	margin-bottom: 18px;
+}
+
+.game-over__title {
+	margin: 0;
+
+	color: #e94b55;
+	font-size: clamp(48px, 10vw, 76px);
+	font-weight: 900;
+	letter-spacing: 5px;
+
+	text-shadow: 0 0 35px rgba(233, 75, 85, 0.3);
+}
+
+.game-over__divider {
+	width: 60px;
+	height: 2px;
+	margin: 25px auto;
+
+	background: #a73540;
+}
+
+.game-over__description {
+	color: #a7aab5;
+	font-size: 14px;
+	line-height: 1.6;
+	margin-bottom: 36px;
+}
+
+.game-over__button {
+	width: 100%;
+	padding: 16px 22px;
+
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+
+	color: #fff;
+	background: #9e303b;
+	border: 1px solid #c44b55;
+	border-radius: 4px;
+
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: 3px;
+
+	cursor: pointer;
+
+	transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.game-over__button:hover {
+	background: #c13c48;
+	box-shadow: 0 0 25px rgba(193, 60, 72, 0.25);
+	transform: translateY(-2px);
+}
+
+.game-over__arrow {
+	font-size: 20px;
+}
+
+.game-over__footer {
+	margin-top: 28px;
+
+	color: #555966;
+	font-size: 9px;
+	letter-spacing: 3px;
+}
