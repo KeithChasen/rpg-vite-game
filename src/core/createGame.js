@@ -12,6 +12,10 @@ import { updateEnemies } from '../systems/updateEnemies.js';
 
 import { updateCombat } from '../systems/updateCombat.js';
 
+import { createDrop } from '../entities/createDrop.js';
+import { createInventory } from '../systems/createInventory.js';
+import { updateDrops } from '../systems/updateDrops.js';
+
 export function createGame(container) {
 	const scene = new THREE.Scene();
 
@@ -76,6 +80,23 @@ export function createGame(container) {
 	// Input
 	const input = createInput();
 
+	const inventory = createInventory();
+
+	const drops = [
+		createDrop(scene, {
+			x: 3,
+			z: 3,
+			itemId: 'wolf_fang',
+			amount: 1,
+		}),
+		createDrop(scene, {
+			x: 4,
+			z: 3,
+			itemId: 'wolf_pelt',
+			amount: 2,
+		}),
+	];
+
 	// Time tracking
 	const clock = new THREE.Clock();
 
@@ -125,6 +146,13 @@ export function createGame(container) {
 			environment.obstacles,
 			island.radius - 3
 		);
+
+		updateDrops({
+			drops,
+			player,
+			input,
+			inventory,
+		});
 
 		// Update camera
 		cameraTarget.copy(player.position).add(cameraOffset);
