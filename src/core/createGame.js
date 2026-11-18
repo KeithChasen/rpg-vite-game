@@ -16,6 +16,8 @@ import { createDrop } from '../entities/createDrop.js';
 import { createInventory } from '../systems/createInventory.js';
 import { updateDrops } from '../systems/updateDrops.js';
 
+import { createInventoryUI } from '../ui/createInventoryUI.js';
+
 export function createGame(container) {
 	const scene = new THREE.Scene();
 
@@ -81,6 +83,8 @@ export function createGame(container) {
 	const input = createInput();
 
 	const inventory = createInventory();
+
+	const inventoryUI = createInventoryUI(inventory);
 
 	const drops = [
 		createDrop(scene, {
@@ -153,6 +157,12 @@ export function createGame(container) {
 			input,
 			inventory,
 		});
+
+		if (input.wasPressed('KeyI')) {
+			inventoryUI.toggle();
+		}
+
+		input.endFrame();
 
 		// Update camera
 		cameraTarget.copy(player.position).add(cameraOffset);
