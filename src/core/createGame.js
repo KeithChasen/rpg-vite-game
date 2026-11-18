@@ -70,7 +70,8 @@ export function createGame(container) {
 	const clock = new THREE.Clock();
 
 	// Camera follow
-	const cameraOffset = new THREE.Vector3(18, 20, 22);
+	// const cameraOffset = new THREE.Vector3(18, 20, 22);
+	const cameraOffset = new THREE.Vector3(0, 20, 22); // do not turn camera by X
 	const cameraTarget = new THREE.Vector3();
 
 	let animationFrameId = 0;
@@ -90,7 +91,13 @@ export function createGame(container) {
 		const deltaTime = Math.min(clock.getDelta(), 0.05);
 
 		// Update player
-		updatePlayerMovement(player, input, deltaTime, island.radius - 3);
+		updatePlayerMovement(
+			player,
+			input,
+			deltaTime,
+			island.radius - 3,
+			environment.obstacles
+		);
 
 		// Update camera
 		cameraTarget.copy(player.position).add(cameraOffset);

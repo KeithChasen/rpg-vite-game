@@ -61,6 +61,7 @@ export function createPlayer(scene, { x = 0, z = 0 } = {}) {
 		root,
 		position: root.position,
 		speed: 6,
+		collisionRadius: 0.45, // player's collision radius
 
 		dispose() {
 			scene.remove(root);

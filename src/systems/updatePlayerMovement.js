@@ -7,12 +7,26 @@ const RIGHT = ['KeyD', 'ArrowRight'];
 
 const direction = new THREE.Vector3();
 
-/** Updates player position using input and elapsed frame time. */
+/**
+ * Checks whether a position overlaps with any obstacle.
+ */
+function collidesWithObstacle(x, z, playerRadius, obstacles) {
+	return obstacles.some(obstacle => {
+		const distance = Math.hypot(x - obstacle.x, z - obstacle.z);
+
+		return distance < playerRadius + obstacle.radius;
+	});
+}
+
+/**
+ * Updates player position using input, elapsed time and collisions.
+ */
 export function updatePlayerMovement(
 	player,
 	input,
 	deltaTime,
-	worldRadius = 35
+	worldRadius = 35,
+	obstacles = []
 ) {
 	direction.set(0, 0, 0);
 
@@ -23,13 +37,40 @@ export function updatePlayerMovement(
 
 	if (direction.lengthSq() === 0) return;
 
-	// Prevent diagonal movement from being faster than straight movement.
 	direction.normalize();
 
-	player.position.x += direction.x * player.speed * deltaTime;
-	player.position.z += direction.z * player.speed * deltaTime;
+	const moveX = direction.x * player.speed * deltaTime;
+	const moveZ = direction.z * player.speed * deltaTime;
 
-	// Keep the player on the island. Obstacles will be handled in the next step.
+	// Move along X first.
+	const nextX = player.position.x + moveX;
+
+	if (
+		!collidesWithObstacle(
+			nextX,
+			player.position.z,
+			player.collisionRadius,
+			obstacles
+		)
+	) {
+		player.position.x = nextX;
+	}
+
+	// Then move along Z.
+	const nextZ = player.position.z + moveZ;
+
+	if (
+		!collidesWithObstacle(
+			player.position.x,
+			nextZ,
+			player.collisionRadius,
+			obstacles
+		)
+	) {
+		player.position.z = nextZ;
+	}
+
+	// Keep the player inside the island.
 	const distanceFromCenter = Math.hypot(player.position.x, player.position.z);
 
 	if (distanceFromCenter > worldRadius) {
@@ -39,6 +80,6 @@ export function updatePlayerMovement(
 		player.position.z *= scale;
 	}
 
-	// The model's forward direction is local -Z.
+	// Rotate the model towards the movement direction.
 	player.root.rotation.y = Math.atan2(direction.x, direction.z) + Math.PI;
 }
