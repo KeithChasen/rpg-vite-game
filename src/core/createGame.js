@@ -8,6 +8,7 @@ import { createEnemy } from '../entities/createEnemy.js';
 
 import { createInput } from '../systems/createInput.js';
 import { updatePlayerMovement } from '../systems/updatePlayerMovement.js';
+import { updateEnemies } from '../systems/updateEnemies.js';
 
 export function createGame(container) {
 	const scene = new THREE.Scene();
@@ -104,6 +105,14 @@ export function createGame(container) {
 			deltaTime,
 			island.radius - 3,
 			environment.obstacles
+		);
+
+		updateEnemies(
+			enemies,
+			player,
+			deltaTime,
+			environment.obstacles,
+			island.radius - 3
 		);
 
 		// Update camera
