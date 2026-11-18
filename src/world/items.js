@@ -12,4 +12,11 @@ export const ITEMS = {
 		description: 'A piece of wolf fur.',
 		icon: '🐺',
 	},
+
+	wolf_chief_fang: {
+		id: 'wolf_chief_fang',
+		name: 'Wolf Chief Fang',
+		description: 'A massive fang taken from the wolf chief.',
+		icon: '🦷',
+	},
 };

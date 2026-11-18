@@ -26,6 +26,14 @@ import { createQuestManager } from '../quests/createQuestManager.js';
 import { createNpc } from '../entities/createNpc.js';
 import { createWallet } from '../systems/createWallet.js';
 
+import { createDialogueUI } from '../ui/createDialogueUI.js';
+
+import { updateNpcInteraction } from '../systems/updateNpcInteraction.js';
+import { createNpcDialogue } from '../dialogue/createNpcDialogue.js';
+
+import { createNpcQuestMarker } from '../ui/createNpcQuestMarker.js';
+import { createQuestLogUI } from '../ui/createQuestLogUI.js';
+import { createQuestNotifications } from '../ui/createQuestNotifications.js';
 export function createGame(container) {
 	const scene = new THREE.Scene();
 
@@ -101,6 +109,21 @@ export function createGame(container) {
 	const wallet = createWallet();
 	const inventoryUI = createInventoryUI(inventory);
 
+	const dialogueUI = createDialogueUI();
+
+	// dialogueUI.open({
+	// 	speaker: 'Village Elder',
+	// 	text: 'The wolves have become a serious threat to our settlement. Will you help us?',
+	// 	choices: [
+	// 		{ id: 'accept', text: 'I will help you.' },
+	// 		{ id: 'refuse', text: 'Not now.' },
+	// 	],
+	// 	onChoice: choiceId => {
+	// 		console.log('Selected dialogue choice:', choiceId);
+	// 		dialogueUI.close();
+	// 	},
+	// });
+
 	const drops = [
 		// createDrop(scene, {
 		// 	x: 3,
@@ -117,7 +140,56 @@ export function createGame(container) {
 	];
 
 	const events = createEventBus();
-	const questManager = createQuestManager(events);
+	const questManager = createQuestManager(events, {
+		inventory,
+		wallet,
+	});
+
+	const npcQuestMarker = createNpcQuestMarker(npc, questManager, events);
+
+	const questLogUI = createQuestLogUI(questManager, events);
+
+	const questNotifications = createQuestNotifications(events, questManager);
+
+	const wolfSpawnPoints = [
+		{ x: 12, z: -10 },
+		{ x: -14, z: -9 },
+		{ x: 18, z: 8 },
+		{ x: -16, z: 14 },
+		{ x: 3, z: -18 },
+	];
+
+	const unsubscribeQuestAccepted = events.on(
+		'quest:accepted',
+		({ questId }) => {
+			if (questId === 'wolf_hunt') {
+				for (const position of wolfSpawnPoints) {
+					const enemy = createEnemy(scene, position);
+
+					enemy.type = 'wolf';
+					enemies.push(enemy);
+				}
+			}
+
+			if (questId === 'wolf_chief') {
+				const boss = createEnemy(scene, {
+					x: -8,
+					z: -18,
+				});
+
+				boss.type = 'wolf_chief';
+				boss.hp = 150;
+				boss.maxHp = 150;
+
+				enemies.push(boss);
+			}
+		}
+	);
+
+	const npcDialogue = createNpcDialogue({
+		dialogueUI,
+		questManager,
+	});
 
 	// Time tracking
 	const clock = new THREE.Clock();
@@ -143,14 +215,52 @@ export function createGame(container) {
 
 		const deltaTime = Math.min(clock.getDelta(), 0.05);
 
-		// Update player
-		updatePlayerMovement(
-			player,
-			input,
-			deltaTime,
-			island.radius - 3,
-			environment.obstacles
-		);
+		if (!dialogueUI.isOpen() && input.wasPressed('KeyJ')) {
+			questLogUI.toggle();
+		}
+
+		if (!dialogueUI.isOpen() && !questLogUI.isOpen()) {
+			updateNpcInteraction({
+				npc,
+				player,
+				input,
+				onInteract: () => npcDialogue.open(),
+			});
+		}
+
+		const interfaceOpen = dialogueUI.isOpen() || questLogUI.isOpen();
+
+		if (!interfaceOpen) {
+			// Update player
+			updatePlayerMovement(
+				player,
+				input,
+				deltaTime,
+				island.radius - 3,
+				environment.obstacles
+			);
+
+			updateCombat(
+				player,
+				input,
+				enemies,
+				deltaTime,
+				environment.obstacles,
+				island.radius - 3,
+				events
+			);
+
+			updateDrops({
+				drops,
+				player,
+				input,
+				inventory,
+			});
+
+			if (input.wasPressed('KeyI')) {
+				inventoryUI.toggle();
+			}
+		}
 
 		updateEnemies(
 			enemies,
@@ -160,28 +270,7 @@ export function createGame(container) {
 			island.radius - 3
 		);
 
-		updateCombat(
-			player,
-			input,
-			enemies,
-			deltaTime,
-			environment.obstacles,
-			island.radius - 3,
-			events
-		);
-
 		updateEnemyDrops(enemies, drops, scene);
-
-		updateDrops({
-			drops,
-			player,
-			input,
-			inventory,
-		});
-
-		if (input.wasPressed('KeyI')) {
-			inventoryUI.toggle();
-		}
 
 		input.endFrame();
 
@@ -227,6 +316,17 @@ export function createGame(container) {
 
 		questManager.dispose();
 		events.dispose();
+
+		dialogueUI.dispose();
+
+		npcDialogue.close();
+
+		npcQuestMarker.dispose();
+		questLogUI.dispose();
+		questNotifications.dispose();
+		unsubscribeQuestAccepted();
+
+		unsubscribeQuestAccepted();
 
 		container.removeChild(renderer.domElement);
 	}

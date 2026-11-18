@@ -1,13 +1,14 @@
 import { QUESTS } from './questDefinitions.js';
 
-export function createQuestManager(events) {
+export function createQuestManager(events, { inventory, wallet }) {
 	const quests = new Map();
 
+	// Initialize quests and their objectives.
 	for (const definition of Object.values(QUESTS)) {
 		quests.set(definition.id, {
 			...definition,
 
-			status: definition.id === 'wolf_hunt' ? 'available' : 'locked',
+			status: definition.requires?.length ? 'locked' : 'available',
 
 			objectives: definition.objectives.map(objective => ({
 				...objective,
@@ -23,9 +24,7 @@ export function createQuestManager(events) {
 
 		return {
 			...quest,
-			objectives: quest.objectives.map(objective => ({
-				...objective,
-			})),
+			objectives: quest.objectives.map(objective => ({ ...objective })),
 		};
 	}
 
@@ -42,118 +41,170 @@ export function createQuestManager(events) {
 
 		quest.status = 'active';
 
-		events.emit('quest:accepted', {
+		events.emit('quest:accepted', { questId });
+
+		events.emit('quest:updated', {
 			questId,
+			status: quest.status,
 		});
 
 		return true;
 	}
 
-	function updateObjective(type, target, amount = 1) {
+	function updateObjective(objective, payload = {}) {
+		if (objective.progress >= objective.required) return;
+
+		// Check whether the event payload matches the objective.
+		const matches = Object.entries(objective.match ?? {}).every(
+			([key, value]) => payload[key] === value
+		);
+
+		if (!matches) return;
+
+		const amount = payload.amount ?? 1;
+
+		objective.progress = Math.min(
+			objective.progress + amount,
+			objective.required
+		);
+	}
+
+	function updateQuestProgress(quest) {
+		// Turn-in objectives are completed only when reporting the quest.
+		const regularObjectives = quest.objectives.filter(
+			objective => !objective.turnIn
+		);
+
+		const completed = regularObjectives.every(
+			objective => objective.progress >= objective.required
+		);
+
+		if (!completed || quest.status !== 'active') return;
+
+		quest.status = 'ready_to_report';
+
+		events.emit('quest:updated', {
+			questId: quest.id,
+			status: quest.status,
+		});
+
+		events.emit('quest:readyToReport', {
+			questId: quest.id,
+		});
+	}
+
+	function handleGameEvent(eventName, payload) {
 		for (const quest of quests.values()) {
 			if (quest.status !== 'active') continue;
 
 			for (const objective of quest.objectives) {
-				if (objective.type !== type) continue;
+				if (objective.event !== eventName) continue;
 
-				const matchesTarget =
-					type === 'kill'
-						? objective.target === target
-						: objective.itemId === target;
-
-				if (!matchesTarget) continue;
-
-				objective.progress = Math.min(
-					objective.progress + amount,
-					objective.required
-				);
+				updateObjective(objective, payload);
 			}
 
-			const completed = quest.objectives.every(
-				objective => objective.progress >= objective.required
+			updateQuestProgress(quest);
+		}
+	}
+
+	function unlockAvailableQuests() {
+		for (const quest of quests.values()) {
+			if (quest.status !== 'locked') continue;
+
+			const requirementsMet = (quest.requires ?? []).every(
+				requiredQuestId => quests.get(requiredQuestId)?.status === 'completed'
 			);
 
-			if (completed) {
-				quest.status = 'ready_to_report';
+			if (!requirementsMet) continue;
 
-				events.emit('quest:readyToReport', {
-					questId: quest.id,
-				});
+			quest.status = 'available';
+
+			events.emit('quest:available', {
+				questId: quest.id,
+			});
+		}
+	}
+
+	function reportQuest(questId) {
+		const quest = quests.get(questId);
+
+		if (!quest || quest.status !== 'ready_to_report') {
+			return false;
+		}
+
+		// Validate all turn-in objectives before consuming anything.
+		for (const objective of quest.objectives) {
+			if (!objective.turnIn) continue;
+
+			const { itemId } = objective.turnIn;
+
+			if (inventory.getItemCount(itemId) < objective.required) {
+				return false;
+			}
+		}
+
+		// Consume required items.
+		for (const objective of quest.objectives) {
+			if (!objective.turnIn) continue;
+
+			const { itemId } = objective.turnIn;
+
+			const removed = inventory.removeItem(itemId, objective.required);
+
+			if (!removed) {
+				throw new Error(`Failed to remove quest item: ${itemId}`);
+			}
+
+			objective.progress = objective.required;
+		}
+
+		// Apply rewards.
+		if (quest.reward?.gold) {
+			wallet.addGold(quest.reward.gold);
+		}
+
+		quest.status = 'completed';
+
+		events.emit('quest:completed', { questId });
+
+		events.emit('quest:updated', {
+			questId,
+			status: quest.status,
+		});
+
+		unlockAvailableQuests();
+
+		return true;
+	}
+
+	// Subscribe to all event types used by quest objectives.
+	const eventNames = new Set();
+
+	for (const quest of quests.values()) {
+		for (const objective of quest.objectives) {
+			if (objective.event) {
+				eventNames.add(objective.event);
 			}
 		}
 	}
 
-	function reportWolfHunt() {
-		const quest = quests.get('wolf_hunt');
-
-		if (quest.status !== 'ready_to_report') {
-			return false;
-		}
-
-		quest.status = 'completed';
-
-		const nextQuest = quests.get('wolf_chief');
-		nextQuest.status = 'available';
-
-		events.emit('quest:completed', {
-			questId: 'wolf_hunt',
-		});
-
-		events.emit('quest:available', {
-			questId: 'wolf_chief',
-		});
-
-		return true;
-	}
-
-	function reportWolfChief(inventory, wallet) {
-		const quest = quests.get('wolf_chief');
-
-		if (!quest || quest.status !== 'active') {
-			return false;
-		}
-
-		const fangObjective = quest.objectives.find(
-			objective => objective.id === 'deliver_fang'
-		);
-
-		if (!fangObjective || inventory.getItemCount('wolf_chief_fang') < 1) {
-			return false;
-		}
-
-		inventory.removeItem('wolf_chief_fang', 1);
-
-		quest.objectives.find(
-			objective => objective.id === 'kill_chief'
-		).progress = 1;
-
-		fangObjective.progress = 1;
-
-		quest.status = 'completed';
-
-		wallet.addGold(quest.reward.gold);
-
-		events.emit('quest:completed', {
-			questId: 'wolf_chief',
-		});
-
-		return true;
-	}
-
-	const unsubscribeKill = events.on('enemy:killed', ({ enemyType }) => {
-		updateObjective('kill', enemyType);
-	});
+	const unsubscribers = [...eventNames].map(eventName =>
+		events.on(eventName, payload => {
+			handleGameEvent(eventName, payload);
+		})
+	);
 
 	function dispose() {
-		unsubscribeKill();
+		for (const unsubscribe of unsubscribers) {
+			unsubscribe();
+		}
 	}
 
 	return {
 		getQuest,
 		getQuests,
 		acceptQuest,
-		reportWolfHunt,
-		reportWolfChief,
+		reportQuest,
 		dispose,
 	};
 }

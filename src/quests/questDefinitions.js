@@ -7,8 +7,8 @@ export const QUESTS = {
 		objectives: [
 			{
 				id: 'kill_wolves',
-				type: 'kill',
-				target: 'wolf',
+				event: 'enemy:killed',
+				match: { enemyType: 'wolf' },
 				required: 5,
 				description: 'Kill 5 wolves',
 			},
@@ -24,18 +24,21 @@ export const QUESTS = {
 		title: 'The Alpha',
 		description: 'Kill the leader of the wolf pack and bring his fang.',
 
+		requires: ['wolf_hunt'],
+
 		objectives: [
 			{
 				id: 'kill_chief',
-				type: 'kill',
-				target: 'wolf_chief',
+				event: 'enemy:killed',
+				match: { enemyType: 'wolf_chief' },
 				required: 1,
 				description: 'Kill the wolf chief',
 			},
 			{
 				id: 'deliver_fang',
-				type: 'deliver',
-				itemId: 'wolf_chief_fang',
+				turnIn: {
+					itemId: 'wolf_chief_fang',
+				},
 				required: 1,
 				description: 'Bring the wolf chief fang',
 			},
